@@ -37,12 +37,14 @@ class CarRacingConfig(PPOConfig):
     minibatch_size: int = 256
     epochs_per_batch: int = 4
     entropy_coefficient: float = 0.05
+    entropy_decay: bool = True
     
     total_gradient_steps: int = 500_000
     device: str = "cuda" if torch.cuda.is_available() \
                 else 'mps' if torch.backends.mps.is_available() \
                 else "cpu"
     
+    wandb_entity: str = 'apcsc'
     wandb_project: str = "ppo-carracing"
     wandb_run_name: str = None
     video_log_freq: int = 2_000

@@ -37,8 +37,10 @@ class PPO:
         self.act_dim = config.act_dim
         self.T = config.T
         self.entropy_coefficient = config.entropy_coefficient
+        self.entropy_decay = config.entropy_coefficient
         self.minibatch_size = config.minibatch_size
         self.cur_obs = None
+
         
         # Logger
         self.logger = Logger(config, make_env=make_env)
@@ -144,6 +146,12 @@ class PPO:
                 critic_optimizer=self.critic_optimizer,
                 step=step,
             )
+    def _get_entropy_coefficient(self, step, total_grad_steps):
+        if not self.entropy_decay:
+            return self.entropy_coefficient
+        else:
+            return self.entropy_coefficient * (1 - (step / total_grad_steps))
+
     
     def run_batch(self, total_gradient_steps: int):
         t = 0
@@ -183,6 +191,7 @@ class PPO:
 
                     We compare to old distribution to ensure distributional shift is small/clipped (for stability).
                     """
+                    ecoef=self._get_entropy_coefficient(step=t, total_grad_steps=total_gradient_steps)
                     new_log_probs, entropy = self._get_log_prob_and_entropy(batch_obs, batch_actions)
                     actor_loss = self._actor_loss(
                         advantages=normalized_batch_advantages, 
@@ -190,7 +199,7 @@ class PPO:
                         new_log_probs=new_log_probs, 
                         epsilon=self.config.epsilon
                         # you want higher entropy for exploration, otherwise you'll be too greedy.
-                    ) - entropy.mean() * self.entropy_coefficient
+                    ) - entropy.mean() * ecoef
 
                     """
                     Now the actor is done, we need to recalibrate the critic to the new values.
@@ -219,6 +228,7 @@ class PPO:
                         critic_loss=critic_loss.item(),
                         entropy=entropy.mean().item(),
                         step=t,
+                        entropy_coef=ecoef
                     )
                                 # Save checkpoint if needed
                     self._maybe_save_checkpoint(t)

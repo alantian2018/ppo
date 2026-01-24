@@ -18,9 +18,12 @@ class PPOConfig:
     minibatch_size: int = 64
     epochs_per_batch: int = 4
     entropy_coefficient: float = 0.01
+    entropy_decay: bool = True
     device: str = "cpu"
+
     
     # Wandb
+    wandb_entity: Optional[str] = None
     wandb_project: Optional[str] = None
     wandb_run_name: Optional[str] = None
     video_log_freq: Optional[int] = None

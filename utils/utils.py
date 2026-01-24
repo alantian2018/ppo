@@ -66,6 +66,7 @@ class PPOLogger:
         
         if self.use_wandb:
             wandb.init(
+                entity=config.wandb_entity,
                 project=config.wandb_project,
                 name=config.wandb_run_name,
                 config=asdict(config),
@@ -85,13 +86,14 @@ class PPOLogger:
                 "rollout/num_episodes": len(episode_returns),
             }, step=step)
     
-    def log_training(self, actor_loss: float, critic_loss: float, entropy: float, step: int):
+    def log_training(self, actor_loss: float, critic_loss: float, entropy: float, step: int, entropy_coef: int):
         """Log training metrics."""
         if self.use_wandb:
             self.log({
                 "train/actor_loss": actor_loss,
                 "train/critic_loss": critic_loss,
                 "train/entropy": entropy,
+                "train/entropy_coefficient": entropy_coef
             }, step=step)
     
     def maybe_record_video(self, actor: torch.nn.Module, step: int, device: str):
@@ -158,6 +160,7 @@ class SACLogger:
         
         if self.use_wandb:
             wandb.init(
+                entity=config.wandb_entity,
                 project=config.wandb_project,
                 name=config.wandb_run_name,
                 config=asdict(config),

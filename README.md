@@ -3,7 +3,21 @@
 My personal implementations of reinforcement learning algorithms.
 
 ---
+### Installation
+```
+conda create -y -n "rl" python=3.10
+conda activate rl
+pip install -r requirements.txt
+```
 
+Then to run:
+
+```
+python -m ppo.experiments.[INSERT_EXP_NAME]
+
+e.g.
+python -m ppo.experiments.carracing
+```
 ## Algorithms
 
 ### PPO (Proximal Policy Optimization)
