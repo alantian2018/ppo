@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-
+import torch
 
 @dataclass
 class PPOConfig:
@@ -19,7 +19,9 @@ class PPOConfig:
     epochs_per_batch: int = 4
     entropy_coefficient: float = 0.01
     entropy_decay: bool = True
-    device: str = "cpu"
+    device: str = "cuda" if torch.cuda.is_available() \
+                else 'mps' if torch.backends.mps.is_available() \
+                else "cpu"
 
     
     # Wandb
