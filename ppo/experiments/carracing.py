@@ -14,7 +14,7 @@ import termcolor
 import numpy as np
 
 
-from ppo import  PPOConfig, PPO, CNNActor, CNNCritic
+from ppo import PPOConfig, PPO, CarRacingActor, CarRacingCritic
 
 def make_carracing_env(render_mode=None):
     env = gymnasium.make("CarRacing-v3", continuous=False, render_mode=render_mode)
@@ -28,15 +28,15 @@ class CarRacingConfig(PPOConfig):
     actor_hidden_size: int = 128
     critic_hidden_size: int = 128
     
-    T: int = 1024
+    T: int = 2048
     gamma: float = 0.99
     gae_lambda: float = 0.95
     epsilon: float = 0.1
     actor_lr: float = 3e-4
     critic_lr: float = 1e-3
-    minibatch_size: int = 32
+    minibatch_size: int = 256
     epochs_per_batch: int = 4
-    entropy_coefficient: float = 0.01
+    entropy_coefficient: float = 0.05
     
     total_gradient_steps: int = 500_000
     device: str = "cuda" if torch.cuda.is_available() \
@@ -45,10 +45,10 @@ class CarRacingConfig(PPOConfig):
     
     wandb_project: str = "ppo-carracing"
     wandb_run_name: str = None
-    video_log_freq: int = None
+    video_log_freq: int = 2_000
     
     save_dir: str = "checkpoints/carracing"
-    save_freq: int = 10_000
+    save_freq: int = None
     
     load_from_existing_checkpoint: bool = False
     load_checkpoint_path: str = None
@@ -71,20 +71,20 @@ def main(config: CarRacingConfig):
     height = config.obs_dim[0]
     width = config.obs_dim[1]
 
-    actor = CNNActor(
+    actor = CarRacingActor(
         in_channels=in_channels,
         height=height,
         width=width,
         act_dim=config.act_dim,
         hidden_size=config.actor_hidden_size,
     )
-    critic = CNNCritic(
+    critic = CarRacingCritic(
         in_channels=in_channels,
         height=height,
         width=width,
         hidden_size=config.critic_hidden_size,
     )
-    
+  
     if config.load_from_existing_checkpoint:
         actor.load_state_dict(torch.load(config.load_checkpoint_path)['actor_state_dict'])
         critic.load_state_dict(torch.load(config.load_checkpoint_path)['critic_state_dict'])

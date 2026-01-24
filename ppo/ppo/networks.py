@@ -91,3 +91,85 @@ class CNNCritic(Module):
         obs = obs.permute(0, 3, 1, 2)
         x = self.conv(obs)
         return self.fc(x)
+
+
+class CarRacingActor(Module):
+    """Downsampling CNN tailored for 96x96x3 CarRacing observations."""
+    def __init__(self, in_channels: int, height: int, width: int, act_dim: int, hidden_size: int):
+        super().__init__()
+        # aggressive downsampling: kernel/stride choices inspired by Atari-style nets
+        self.conv = Sequential(
+            Conv2d(in_channels, 32, kernel_size=8, stride=4),
+            ReLU(),
+            Conv2d(32, 64, kernel_size=4, stride=2),
+            ReLU(),
+            Conv2d(64, 64, kernel_size=3, stride=1),
+            ReLU(),
+        )
+
+        def _conv_out_dim(size, k, s, p=0):
+            return (size + 2 * p - k) // s + 1
+
+        h = _conv_out_dim(height, 8, 4)
+        h = _conv_out_dim(h, 4, 2)
+        h = _conv_out_dim(h, 3, 1)
+        w = _conv_out_dim(width, 8, 4)
+        w = _conv_out_dim(w, 4, 2)
+        w = _conv_out_dim(w, 3, 1)
+
+        flattened = 64 * h * w
+
+        self.fc = Sequential(
+            Flatten(),
+            Linear(flattened, hidden_size),
+            ReLU(),
+            Linear(hidden_size, act_dim),
+        )
+
+    def forward(self, obs: torch.Tensor) -> Categorical:
+        if obs.dim() == 3:
+            obs = obs.unsqueeze(0)
+        obs = obs.permute(0, 3, 1, 2)  # HWC -> CHW
+        x = self.conv(obs)
+        logits = self.fc(x)
+        return Categorical(logits=logits)
+
+
+class CarRacingCritic(Module):
+    """Downsampling CNN critic for 96x96x3 CarRacing observations."""
+    def __init__(self, in_channels: int, height: int, width: int, hidden_size: int):
+        super().__init__()
+        self.conv = Sequential(
+            Conv2d(in_channels, 32, kernel_size=8, stride=4),
+            ReLU(),
+            Conv2d(32, 64, kernel_size=4, stride=2),
+            ReLU(),
+            Conv2d(64, 64, kernel_size=3, stride=1),
+            ReLU(),
+        )
+
+        def _conv_out_dim(size, k, s, p=0):
+            return (size + 2 * p - k) // s + 1
+
+        h = _conv_out_dim(height, 8, 4)
+        h = _conv_out_dim(h, 4, 2)
+        h = _conv_out_dim(h, 3, 1)
+        w = _conv_out_dim(width, 8, 4)
+        w = _conv_out_dim(w, 4, 2)
+        w = _conv_out_dim(w, 3, 1)
+
+        flattened = 64 * h * w
+
+        self.fc = Sequential(
+            Flatten(),
+            Linear(flattened, hidden_size),
+            ReLU(),
+            Linear(hidden_size, 1),
+        )
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        if obs.dim() == 3:
+            obs = obs.unsqueeze(0)
+        obs = obs.permute(0, 3, 1, 2)
+        x = self.conv(obs)
+        return self.fc(x)

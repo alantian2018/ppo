@@ -99,7 +99,7 @@ class PPOLogger:
         if not self.use_wandb or self.video_log_freq is None or self.make_env is None:
             return
         
-        if step != 0 or step - self.last_video_step >= self.video_log_freq:
+        if step == 0 or step - self.last_video_step >= self.video_log_freq:
             with torch.no_grad():
                 self._record_video(actor, step, device)
                 self.last_video_step = step
