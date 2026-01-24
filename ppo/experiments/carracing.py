@@ -14,7 +14,7 @@ import termcolor
 import numpy as np
 
 
-from ppo import PPO, CNNActor, CNNCritic, PPOConfig
+from ppo import  PPOConfig, PPO, CNNActor, CNNCritic
 
 def make_carracing_env(render_mode=None):
     env = gymnasium.make("CarRacing-v3", continuous=False, render_mode=render_mode)
@@ -25,8 +25,8 @@ def make_carracing_env(render_mode=None):
 class CarRacingConfig(PPOConfig):
     obs_dim: tuple = (96, 96, 3)
     act_dim: int = 5
-    actor_hidden_size: int = 256
-    critic_hidden_size: int = 256
+    actor_hidden_size: int = 128
+    critic_hidden_size: int = 128
     
     T: int = 1024
     gamma: float = 0.99
@@ -39,11 +39,13 @@ class CarRacingConfig(PPOConfig):
     entropy_coefficient: float = 0.01
     
     total_gradient_steps: int = 500_000
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str = "cuda" if torch.cuda.is_available() \
+                else 'mps' if torch.backends.mps.is_available() \
+                else "cpu"
     
     wandb_project: str = "ppo-carracing"
     wandb_run_name: str = None
-    video_log_freq: int = 5000
+    video_log_freq: int = None
     
     save_dir: str = "checkpoints/carracing"
     save_freq: int = 10_000

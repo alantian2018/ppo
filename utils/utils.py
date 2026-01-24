@@ -99,9 +99,10 @@ class PPOLogger:
         if not self.use_wandb or self.video_log_freq is None or self.make_env is None:
             return
         
-        if step == 0 or step - self.last_video_step >= self.video_log_freq:
-            self._record_video(actor, step, device)
-            self.last_video_step = step
+        if step != 0 or step - self.last_video_step >= self.video_log_freq:
+            with torch.no_grad():
+                self._record_video(actor, step, device)
+                self.last_video_step = step
     
     def _record_video(self, actor: torch.nn.Module, step: int, device: str):
         """Record an evaluation episode and log video to wandb."""
@@ -120,7 +121,7 @@ class PPOLogger:
                 distribution = actor(obs)
                 action = distribution.sample()
             
-            obs, reward, terminated, truncated, _ = eval_env.step(action[0].cpu().numpy())
+            obs, reward, terminated, truncated, _ = eval_env.step(action.squeeze(0).cpu().numpy())
             obs = torch.tensor(obs, dtype=torch.float32).to(device)
             episode_return += reward
             done = terminated or truncated
@@ -191,8 +192,9 @@ class SACLogger:
             return
         
         if step == 0 or step - self.last_video_step >= self.video_log_freq:
-            self._record_video(policy, step, device)
-            self.last_video_step = step
+            with torch.no_grad():
+                self._record_video(policy, step, device)
+                self.last_video_step = step
     
     def _record_video(self, policy: torch.nn.Module, step: int, device: str, num_evals: int = 10):
         eval_env = self.make_env(render_mode="rgb_array")

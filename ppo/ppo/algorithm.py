@@ -28,8 +28,8 @@ class PPO:
             self.critic = critic
 
         self.config = config
-        self.actor = self.actor.to(config.device)
-        self.critic = self.critic.to(config.device)
+        self.actor = actor.to(config.device)
+        self.critic = critic.to(config.device)
         self.actor_optimizer = Adam(self.actor.parameters(), lr=config.actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=config.critic_lr)
         self.env = env
@@ -52,51 +52,54 @@ class PPO:
     
     def _sample_batch(self):
         """Sample a batch of data from the environment. (T timesteps)"""
-        obs_dim = self.obs_dim if isinstance(self.obs_dim, tuple) else (self.obs_dim,)
-
-        obs = torch.zeros((self.T,) + obs_dim, device= 'cpu')
-        action = torch.zeros(self.T, device= 'cpu')
-        reward = torch.zeros(self.T, device= 'cpu')
-        done = torch.zeros(self.T, device= 'cpu')
-        log_probs = torch.zeros(self.T, device= 'cpu')
         
-        if self.cur_obs is None:
-            self.cur_obs, _ = self.env.reset()
-            self.cur_obs = torch.tensor(self.cur_obs, dtype=torch.float32, device='cpu')
+        with torch.no_grad():
+            obs_dim = self.obs_dim if isinstance(self.obs_dim, tuple) else (self.obs_dim,)
 
-        episode_returns = []
-        for t in range(self.T):
-            distribution = self.actor(self.cur_obs.to(self.config.device))
-            actions = distribution.sample()
-            log_probs_ = distribution.log_prob(actions)
-            next_obs, rewards, terminated, truncated, _ = self.env.step(actions[0].cpu().numpy())
+            obs = torch.zeros((self.T,) + obs_dim, device=self.config.device)
+            action = torch.zeros(self.T, device=self.config.device)
+            reward = torch.zeros(self.T, device=self.config.device)
+            done = torch.zeros(self.T, device=self.config.device)
+            log_probs = torch.zeros(self.T, device=self.config.device)
             
-            next_obs = torch.tensor(next_obs, dtype=torch.float32, device='cpu')
-
-            obs[t] = self.cur_obs
-            action[t] = actions
-            reward[t] = rewards
-            done[t] = terminated or truncated
-            log_probs[t] = log_probs_
-            self.cur_obs = next_obs
-            
-            # Track episode stats
-            self.episode_return += rewards
-            self.episode_length += 1
-
-            if done[t]:
-                episode_returns.append(self.episode_return)
-                self.episode_return = 0.0
-                self.episode_length = 0
+            if self.cur_obs is None:
                 self.cur_obs, _ = self.env.reset()
-                self.cur_obs = torch.tensor(self.cur_obs, dtype=torch.float32, device='cpu')
+                self.cur_obs = torch.tensor(self.cur_obs, dtype=torch.float32, device=self.config.device)
 
+            episode_returns = []
+            for t in range(self.T):
+                distribution = self.actor(self.cur_obs)
+                actions = distribution.sample()
+             
+                log_probs_ = distribution.log_prob(actions)
+                next_obs, rewards, terminated, truncated, _ = self.env.step(actions.squeeze(0).cpu().numpy())
                 
-        return obs, action, reward, done, log_probs.detach(), episode_returns
+                next_obs = torch.tensor(next_obs, dtype=torch.float32, device=self.config.device)
+
+                obs[t] = self.cur_obs
+                action[t] = actions
+                reward[t] = rewards
+                done[t] = terminated or truncated
+                log_probs[t] = log_probs_
+                self.cur_obs = next_obs
+                
+                # Track episode stats
+                self.episode_return += rewards
+                self.episode_length += 1
+
+                if done[t]:
+                    episode_returns.append(self.episode_return)
+                    self.episode_return = 0.0
+                    self.episode_length = 0
+                    self.cur_obs, _ = self.env.reset()
+                    self.cur_obs = torch.tensor(self.cur_obs, dtype=torch.float32, device=self.config.device)
+
+                    
+            return obs, action, reward, done, log_probs.detach(), episode_returns
 
     def _get_log_prob_and_entropy(self, obs, actions):
         """Get the log probability and entropy of the actions, needed to check distributional shift"""
-        distribution = self.actor(obs.to(self.config.device))
+        distribution = self.actor(obs)
         log_probs = distribution.log_prob(actions)
         entropy = distribution.entropy()
         return log_probs, entropy
@@ -151,7 +154,7 @@ class PPO:
             self.logger.log_rollout(episode_returns, step=t)
 
             """use values as a proxy for Advantage function. We glue this down and treat it as an oracle."""
-            value = self.critic(obs.to(self.config.device)).squeeze(-1).detach()
+            value = self.critic(obs).squeeze(-1).detach()
             advantages = self._calculate_advantages(reward, done, value, self.config.gamma, self.config.gae_lambda)
             v_target = (advantages + value).detach()
             
@@ -164,15 +167,6 @@ class PPO:
                     batch_v_target = v_target[i:i+self.minibatch_size]
                     batch_log_probs = old_log_probs[i:i+self.minibatch_size]
                     batch_advantages = advantages[i:i+self.minibatch_size]
-
-                    # move batches to device
-                    batch_obs = batch_obs.to(self.config.device)
-                    batch_actions = batch_actions.to(self.config.device)
-                    batch_v_target = batch_v_target.to(self.config.device)
-                    batch_log_probs = batch_log_probs.to(self.config.device)
-                    batch_advantages = batch_advantages.to(self.config.device)
-
-                    # Normalize advantages to stabilize training
                     normalized_batch_advantages = (batch_advantages - batch_advantages.mean()) / (batch_advantages.std() + 1e-8)
 
                     """

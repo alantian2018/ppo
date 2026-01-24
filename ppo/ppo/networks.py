@@ -16,6 +16,9 @@ class Actor(Module):
         )
 
     def forward(self, obs: torch.Tensor) -> Categorical:
+        if obs.dim==1:
+            obs = obs.unsqueeze(0)
+
         return Categorical(logits=self.net(obs))
 
 
@@ -30,6 +33,9 @@ class Critic(Module):
         )
     
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        if obs.dim==1:
+            obs = obs.unsqueeze(0)
+
         return self.net(obs)
 
 
