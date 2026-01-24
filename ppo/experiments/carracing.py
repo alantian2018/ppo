@@ -25,8 +25,8 @@ def make_carracing_env(render_mode=None):
 class CarRacingConfig(PPOConfig):
     obs_dim: tuple = (96, 96, 3)
     act_dim: int = 5
-    actor_hidden_size: int = 64
-    critic_hidden_size: int = 64
+    actor_hidden_size: int = 256
+    critic_hidden_size: int = 256
     
     T: int = 1024
     gamma: float = 0.99
@@ -34,7 +34,7 @@ class CarRacingConfig(PPOConfig):
     epsilon: float = 0.1
     actor_lr: float = 3e-4
     critic_lr: float = 1e-3
-    minibatch_size: int = 256
+    minibatch_size: int = 32
     epochs_per_batch: int = 4
     entropy_coefficient: float = 0.01
     
