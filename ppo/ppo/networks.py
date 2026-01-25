@@ -39,7 +39,7 @@ class Critic(Module):
         return self.net(obs)
 
 
-class CNNActor(Module):
+class SnakeActor(Module):
     """CNN Actor network -> policy pi(a|s) for image observations."""
     def __init__(self, in_channels: int, height: int, width: int, act_dim: int, hidden_size: int):
         super().__init__()
@@ -67,7 +67,7 @@ class CNNActor(Module):
         return Categorical(logits=logits)
 
 
-class CNNCritic(Module):
+class SnakeCritic(Module):
     """CNN Critic network -> value function V(s) for image observations."""
     def __init__(self, in_channels: int, height: int, width: int, hidden_size: int):
         super().__init__()

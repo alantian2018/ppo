@@ -6,54 +6,50 @@ from tqdm import tqdm
 from typing import Optional, Callable
 
 from .config import PPOConfig
-from .networks import Actor, Critic, CNNActor, CNNCritic
+from .networks import Actor, Critic
 from .gae import gae
-from utils import PPOLogger as Logger, save_checkpoint
 import termcolor
+from common import BaseAlgorithm
 
-class PPO:
+class PPO(BaseAlgorithm):
     def __init__(self, config: PPOConfig,
      env: gymnasium.Env,
-     actor: None | Actor | CNNActor,
-     critic: None | Critic | CNNCritic,
+     actor: None | Actor,
+     critic: None | Critic,
      make_env: Optional[Callable[..., gymnasium.Env]] = None,):
+        
+        super().__init__(config, env, make_env=make_env)
 
         if actor is None:
+            assert isinstance(config.obs_dim, int), \
+                termcolor.colored("the default actor only works for linear input dimensions. Please bring your own actor", 'yellow')
             self.actor = Actor(config.obs_dim, config.act_dim, config.actor_hidden_size)
         else:
+            assert actor is not None
             self.actor = actor
         if critic is None:
+            assert isinstance(config.obs_dim, int), \
+                termcolor.colored("the default critic only works for linear input dimensions. Please bring your own critic", 'yellow')
             self.critic = Critic(config.obs_dim, config.critic_hidden_size)
         else:
+            assert critic is not None
             self.critic = critic
 
-        self.config = config
+    
         self.actor = actor.to(config.device)
         self.critic = critic.to(config.device)
         self.actor_optimizer = Adam(self.actor.parameters(), lr=config.actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=config.critic_lr)
-        self.env = env
-        self.obs_dim = config.obs_dim
-        self.act_dim = config.act_dim
         self.T = config.T
         self.entropy_coefficient = config.entropy_coefficient
         self.entropy_decay = config.entropy_coefficient
         self.minibatch_size = config.minibatch_size
+
         self.cur_obs = None
 
-        
-        # Logger
-        self.logger = Logger(config, make_env=make_env)
-        
-        # Episode tracking
-        self.episode_return = 0.0
-        self.episode_length = 0
+        self.load_ckpt_if_needed()
 
-        print(termcolor.colored("="*100, 'green'))
-        print(termcolor.colored("Config: ", 'green'))   
-        for key, value in self.config.__dict__.items():
-            print(termcolor.colored(f"  {key}: {value}", 'green'))
-        print(termcolor.colored("="*100, 'green'))
+        
 
     def _calculate_advantages(self, rewards: torch.Tensor, dones: torch.Tensor, values: torch.Tensor, gamma: float, gae_lambda: float):
         return gae(rewards, dones, values, gamma, gae_lambda)
@@ -62,9 +58,9 @@ class PPO:
         """Sample a batch of data from the environment. (T timesteps)"""
         
         with torch.no_grad():
-            obs_dim = self.obs_dim if isinstance(self.obs_dim, tuple) else (self.obs_dim,)
+            
 
-            obs = torch.zeros((self.T,) + obs_dim, device=self.config.device)
+            obs = torch.zeros((self.T,) + self.obs_dim, device=self.config.device)
             action = torch.zeros(self.T, device=self.config.device)
             reward = torch.zeros(self.T, device=self.config.device)
             done = torch.zeros(self.T, device=self.config.device)
@@ -131,21 +127,14 @@ class PPO:
         """MSE on current critic values, and v_target = advantages + values (e.g. Q func)"""
         return F.mse_loss(v_target, values)
             
-    def _maybe_save_checkpoint(self, step: int):
-        """Save checkpoint if it's time to do so."""
-        save_freq = self.config.save_freq
-        if save_freq is None:
-            return
-        if step != 0 and step % save_freq == 0:
-            path = f"{self.config.save_dir}/checkpoint_{step}.pt"
-            save_checkpoint(
-                path=path,
-                actor=self.actor,
-                critic=self.critic,
-                actor_optimizer=self.actor_optimizer,
-                critic_optimizer=self.critic_optimizer,
-                step=step,
-            )
+    def _get_networks(self):
+        return {
+            'actor': self.actor,
+            'critic': self.critic,
+            'actor_optimizer': self.actor_optimizer,
+            'critic_optimizer': self.critic_optimizer
+        }
+
     def _get_entropy_coefficient(self, step, total_grad_steps):
         if not self.entropy_decay:
             return self.entropy_coefficient
@@ -224,14 +213,17 @@ class PPO:
                     
                     # Log training metrics
                     self.logger.log_training(
-                        actor_loss=actor_loss.item(),
-                        critic_loss=critic_loss.item(),
-                        entropy=entropy.mean().item(),
-                        step=t,
-                        entropy_coef=ecoef
+                        {
+                            'actor_loss': actor_loss.item(),
+                            'critic_loss': critic_loss.item(),
+                            'entropy' : entropy.mean().item(),
+                            'entropy_coef': ecoef,
+                        },
+                        step=t
                     )
-                                # Save checkpoint if needed
-                    self._maybe_save_checkpoint(t)
+                    # Save checkpoint if needed
+                    self.logger.maybe_save_checkpoint(t, self._get_networks())
+             
                     
                     pbar.update(1)
                     t += 1
@@ -242,17 +234,7 @@ class PPO:
         
         pbar.close()
         
-        # Save final checkpoint
-        if self.config.save_freq is not None:
-            path = f"{self.config.save_dir}/checkpoint_final.pt"
-            save_checkpoint(
-                path=path,
-                actor=self.actor,
-                critic=self.critic,
-                actor_optimizer=self.actor_optimizer,
-                critic_optimizer=self.critic_optimizer,
-                step=t,
-            )
+        self.save_ckpt(step=t)
         
         self.logger.finish()
 

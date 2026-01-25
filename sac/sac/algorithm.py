@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import wandb
-from utils import SACLogger 
+from common import Logger
 from .config import SACConfig
 
 class SAC:

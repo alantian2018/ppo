@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from typing import Optional
-import torch
+from common import GlobalConfig
+from datetime import datetime
+ 
 
-@dataclass
-class PPOConfig:
-    obs_dim: tuple | int
-    act_dim: int
-    actor_hidden_size: int
-    critic_hidden_size: int
+@dataclass(kw_only=True)
+class PPOConfig(GlobalConfig):
+    obs_dim: Optional[int | tuple] = None
+    act_dim: Optional[int] = None
+    actor_hidden_size: int = 128
+    critic_hidden_size: int = 128
 
     T: int = 2048
     gamma: float = 0.99
@@ -19,18 +21,19 @@ class PPOConfig:
     epochs_per_batch: int = 4
     entropy_coefficient: float = 0.01
     entropy_decay: bool = True
-    device: str = "cuda" if torch.cuda.is_available() \
-                else 'mps' if torch.backends.mps.is_available() \
-                else "cpu"
 
+    # prefer ppo-specific checkpoint folder when save_dir is not provided
+    save_dir: Optional[str] = None
     
-    # Wandb
-    wandb_entity: Optional[str] = None
-    wandb_project: Optional[str] = None
-    wandb_run_name: Optional[str] = None
-    video_log_freq: Optional[int] = None
-    
-    # Checkpointing
-    save_freq: Optional[int] = None  # Save checkpoint every N steps (None = disabled)
-    save_dir: str = "checkpoints"    # Directory to save checkpoints
+    def __post_init__(self):
+       
+        if self.save_dir is None:
+            self.save_dir = f'ppo/checkpoints/{self.exp_name}'
 
+           
+        if self.wandb_project is None and self.use_wandb:
+            self.wandb_project = f'ppo-{self.exp_name}'
+
+
+
+        

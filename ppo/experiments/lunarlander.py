@@ -1,7 +1,6 @@
 import gymnasium
 import draccus
 from dataclasses import dataclass
-import torch
 from ppo import PPO, PPOConfig
 from ppo import Actor, Critic
 
@@ -19,11 +18,7 @@ class LunarLanderConfig(PPOConfig):
     
     # Training
     total_gradient_steps: int = 1_000_000
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    # Wandb
-    wandb_project: str = "ppo-lunarlander"
-    wandb_run_name: str = None
+
     video_log_freq: int = total_gradient_steps // 20
 
 

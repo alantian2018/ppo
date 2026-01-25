@@ -1,7 +1,6 @@
 import gymnasium
 import draccus
 from dataclasses import dataclass
-import torch
 from ppo import PPO, PPOConfig, Actor, Critic
 
 
@@ -12,6 +11,7 @@ def make_acrobot_env(render_mode=None):
 @dataclass 
 class AcrobotConfig(PPOConfig):
     """Acrobot-specific config."""
+    exp_name: str = "acrobot"
     obs_dim: int = 6
     act_dim: int = 3
     actor_hidden_size: int = 64
@@ -19,11 +19,7 @@ class AcrobotConfig(PPOConfig):
     
     # Training
     total_gradient_steps: int = 200_000
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    # Wandb
-    wandb_project: str = "ppo-acrobot"
-    wandb_run_name: str = None
+
     video_log_freq: int = total_gradient_steps // 20
 
 

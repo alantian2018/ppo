@@ -1,2 +1,2 @@
-from .ppo import PPOConfig, PPO, CNNActor, CNNCritic, Actor, Critic, CarRacingActor, CarRacingCritic
-__all__ = ["PPO", "PPOConfig", "CNNActor", "CNNCritic", "Actor", "Critic", "CarRacingActor", "CarRacingCritic"]
+from .ppo import PPOConfig, PPO, SnakeActor, SnakeCritic, Actor, Critic, CarRacingActor, CarRacingCritic
+__all__ = ["PPO", "PPOConfig", "SnakeActor", "SnakeCritic", "Actor", "Critic", "CarRacingActor", "CarRacingCritic"]
