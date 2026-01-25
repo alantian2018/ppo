@@ -33,7 +33,7 @@ class CarRacingConfig(PPOConfig):
     # lower epsilon  
     epsilon: float = 0.1
 
-    entropy_coefficient: float = 0.05
+    entropy_coefficient: float = 0.5
     entropy_decay: bool = True
     
     total_gradient_steps: int = 500_000
