@@ -23,14 +23,14 @@ class PPO(BaseAlgorithm):
         if actor is None:
             assert isinstance(config.obs_dim, int), \
                 termcolor.colored("the default actor only works for linear input dimensions. Please bring your own actor", 'yellow')
-            self.actor = Actor(config.obs_dim, config.act_dim, config.actor_hidden_size)
+            self.actor = Actor(config.obs_dim * self.config.frame_stack, config.act_dim, config.actor_hidden_size)
         else:
             assert actor is not None
             self.actor = actor
         if critic is None:
             assert isinstance(config.obs_dim, int), \
                 termcolor.colored("the default critic only works for linear input dimensions. Please bring your own critic", 'yellow')
-            self.critic = Critic(config.obs_dim, config.critic_hidden_size)
+            self.critic = Critic(config.obs_dim * self.config.frame_stack, config.critic_hidden_size)
         else:
             assert critic is not None
             self.critic = critic
@@ -50,6 +50,7 @@ class PPO(BaseAlgorithm):
         self.cur_obs, _ = self.env.reset()
         self.cur_obs = torch.tensor(self.cur_obs, dtype=torch.float32, device=self.config.device)
         self.frame_stack.add_to_frame_stack(data = self.cur_obs)
+       
 
         self.load_ckpt_if_needed()
 

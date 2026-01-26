@@ -20,23 +20,21 @@ class CartPoleConfig(PPOConfig):
     actor_hidden_size: int = 32
     critic_hidden_size: int = 32
     device: str = 'cpu'
-    
+    frame_stack: int = 4
     # Training
-    total_gradient_steps: int = 10_000
+    total_gradient_steps: int = 50_000
     video_log_freq: int = 5000
 
     save_freq: int = 5000
-    path_to_checkpoint: str = 'ppo/checkpoints/cartpole/20260124_205032/checkpoint_final.pt'
-
-    
+  
 
 @draccus.wrap()
 def main(config: CartPoleConfig):
  
     env = make_cartpole_env()
    
-    actor = Actor(config.obs_dim, config.act_dim, config.actor_hidden_size)
-    critic = Critic(config.obs_dim, config.critic_hidden_size)  
+    actor = Actor(config.obs_dim * config.frame_stack, config.act_dim, config.actor_hidden_size)
+    critic = Critic(config.obs_dim * config.frame_stack, config.critic_hidden_size)  
     ppo = PPO(config, env, actor, critic, make_env=make_cartpole_env)
     ppo.run_batch(total_gradient_steps=config.total_gradient_steps)
 
