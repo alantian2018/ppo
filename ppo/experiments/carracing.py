@@ -17,15 +17,18 @@ import numpy as np
 from ppo import PPOConfig, PPO, CarRacingActor, CarRacingCritic
 
 
-
-def make_carracing_env(render_mode=None):
-    env = gymnasium.make("CarRacing-v3", continuous=False, render_mode=render_mode)
+def make_carracing_env(render_mode=None, normalize=True):
+    env = gymnasium.make("CarRacing-v3", continuous=False, render_mode=render_mode,)
+    if not normalize:
+        return env
 
     # Normalize uint8 pixel observations to float32 in range (0, 1)
     class _NormalizeObsWrapper(gymnasium.Wrapper):
         def _normalize(self, obs):
+            obs = obs[:84,:,:].copy()
             if isinstance(obs, np.ndarray) and obs.dtype == np.uint8:
                 return (obs.astype(np.float32) / 255.0)
+            
             return obs
 
         def reset(self, **kwargs):
@@ -35,6 +38,8 @@ def make_carracing_env(render_mode=None):
         def step(self, action):
             obs, reward, terminated, truncated, info = self.env.step(action)
             return self._normalize(obs), reward, terminated, truncated, info
+        
+        
 
     return _NormalizeObsWrapper(env)
 
@@ -71,11 +76,13 @@ class CarRacingConfig(PPOConfig):
 @draccus.wrap()
 def main(config: CarRacingConfig):
     env = make_carracing_env()
+ 
     
+    obs, _ = env.reset()
 
     in_channels = config.obs_dim[2] * config.frame_stack
-    height = config.obs_dim[0]
-    width = config.obs_dim[1]
+    height = obs.shape[0]
+    width =  obs.shape[1]
    
     actor = CarRacingActor(
         in_channels=in_channels,
