@@ -1,11 +1,6 @@
-import sys
-import os
 import gymnasium
-import torch
-import torch.nn as nn
-from torch.distributions import Categorical
 import draccus
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import numpy as np
 
 
@@ -17,10 +12,10 @@ def make_carracing_env(render_mode=None, normalize=True):
     if not normalize:
         return env
 
-    # Normalize uint8 pixel observations to float32 in range (0, 1)
+    # Normalize uint8 pixel observations to float32 in range (0, 1) and crop bottom info bar...
     class _NormalizeObsWrapper(gymnasium.Wrapper):
         def _normalize(self, obs):
-            obs = obs[:84,:,:].copy()
+           
             if isinstance(obs, np.ndarray) and obs.dtype == np.uint8:
                 return (obs.astype(np.float32) / 255.0)
             
@@ -50,7 +45,7 @@ class CarRacingConfig(PPOConfig):
     critic_hidden_size: int = 128  
 
     entropy_coefficient: float = 0.05
-    entropy_decay: bool = True
+    entropy_decay: bool = False
     entropy_decay_steps: bool = 5000
     minibatch_size: int = 64
     T: int = 2048
@@ -66,7 +61,7 @@ class CarRacingConfig(PPOConfig):
     save_freq: int = 10_000
 
     device: str = 'cpu'
-  #  path_to_checkpoint: str = 'ppo/checkpoints/carracing/20260126_175202/checkpoint_9999.pt'
+  #  path_to_checkpoint: str = 'ppo/checkpoints/carracing/20260126_204553/checkpoint_19999.pt'
 
 
 @draccus.wrap()
@@ -92,7 +87,6 @@ def main(config: CarRacingConfig):
         hidden_size=config.critic_hidden_size,
     )
    
-     
     ppo = PPO(config, env, actor, critic, make_env=make_carracing_env)
     ppo.run_batch(config.total_gradient_steps)
 
