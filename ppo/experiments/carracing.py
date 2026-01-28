@@ -44,9 +44,9 @@ class CarRacingConfig(PPOConfig):
     actor_hidden_size: int = 128
     critic_hidden_size: int = 128  
 
-    entropy_coefficient: float = 0.05
+    entropy_coefficient: float = 0.01
     entropy_decay: bool = False
-    entropy_decay_steps: bool = 5000
+    entropy_decay_steps: bool = 100_000
     minibatch_size: int = 64
     T: int = 2048
     epsilon: int = 0.1
@@ -61,7 +61,7 @@ class CarRacingConfig(PPOConfig):
     save_freq: int = 10_000
 
     device: str = 'cpu'
-  #  path_to_checkpoint: str = 'ppo/checkpoints/carracing/20260126_204553/checkpoint_19999.pt'
+    path_to_checkpoint: str = 'ppo/checkpoints/carracing/20260127_173026/checkpoint_9999.pt'
 
 
 @draccus.wrap()

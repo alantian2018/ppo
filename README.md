@@ -3,6 +3,21 @@
 My personal implementations of reinforcement learning algorithms.
 
 ---
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="ppo/gifs/snake.gif" width="200"><br>
+      <sub>Snake</sub>
+    </td>
+    <td align="center">
+      <img src="ppo/gifs/carracing.gif" width="300"><br>
+      <sub>Car Racing</sub>
+    </td>
+  </tr>
+</table>
+
+
 ### Installation
 ```
 conda create -y -n "rl" python=3.10
@@ -28,13 +43,11 @@ python -m ppo.experiments.carracing
 
 ---
 
-<p align="center">
-    <image src=ppo/snake.gif>
-</p>
 
 ## Results on `Wandb`!
 
 ### PPO
+- [Car Racing](https://wandb.ai/apcsc/ppo-carracing?nw=nwuseralantian2018)
 - [Snake](https://wandb.ai/alantian2018/ppo-snake/runs/j1jym4xk)
 - [CartPole](https://wandb.ai/alantian2018/ppo-cartpole?nw=nwuseralantian2018)
 - [LunarLander](https://wandb.ai/alantian2018/ppo-lunarlander?nw=nwuseralantian2018)
